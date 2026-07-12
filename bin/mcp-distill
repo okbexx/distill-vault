@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""CLI entrypoint for the distill-vault MCP server."""
+
+from distill.mcp_server import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

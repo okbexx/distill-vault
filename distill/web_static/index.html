@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>distill-vault Web UI</title>
+  <style>
+    :root {
+      --bg: #0D1117;
+      --panel: #111827;
+      --panel-2: #161B22;
+      --border: rgba(56, 189, 248, 0.18);
+      --text: #E5EEF7;
+      --muted: #94A3B8;
+      --accent: #38BDF8;
+      --danger: #FB7185;
+      --shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      display: grid;
+      grid-template-rows: 72px 1fr;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(17,24,39,0.98), rgba(13,17,23,0.96));
+      backdrop-filter: blur(8px);
+    }
+
+    .brand {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      outline: none;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+    }
+
+    .button {
+      border: 1px solid var(--border);
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .button:hover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.16);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      min-height: 0;
+    }
+
+    .graph-panel {
+      position: relative;
+      min-height: 0;
+      border-right: 1px solid var(--border);
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,0.10), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(167,139,250,0.10), transparent 28%),
+        var(--bg);
+    }
+
+    #graph-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    .status-pill {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 2;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(17, 24, 39, 0.84);
+      color: var(--muted);
+      font-size: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      background: var(--panel-2);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .sidebar-section {
+      padding: 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .sidebar-section.scroll {
+      overflow: auto;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+
+    .meta-grid {
+      display: grid;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .meta-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .meta-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .results, .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .card {
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer;
+    }
+
+    .card:hover {
+      border-color: rgba(56, 189, 248, 0.32);
+    }
+
+    .card-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .card-subtle, .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .code-block {
+      margin-top: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+      max-height: 240px;
+      overflow: auto;
+    }
+
+    @media (max-width: 1080px) {
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(360px, 52vh) auto;
+      }
+      .graph-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">distill-vault // Graph UI</div>
+    <div class="search-wrap">
+      <input id="search-input" class="search-input" type="text" placeholder="搜索节点、标题、概念..." />
+      <button id="search-button" class="button">搜索</button>
+      <button id="refresh-button" class="button">刷新图谱</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="graph-panel">
+      <div id="status-pill" class="status-pill">加载中...</div>
+      <div id="graph-container"></div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="sidebar-section">
+        <h2 class="section-title">选中节点</h2>
+        <div id="node-details" class="meta-grid">
+          <div class="meta-item">
+            <div class="meta-label">状态</div>
+            <div>点击左侧节点查看详情</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sidebar-section">
+        <h2 class="section-title">Vault 概况</h2>
+        <div id="vault-status" class="meta-grid"></div>
+      </section>
+
+      <section class="sidebar-section scroll">
+        <h2 class="section-title">搜索结果 / 社区</h2>
+        <div id="search-results" class="results"></div>
+        <div id="community-list" class="list" style="margin-top: 14px;"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.1/dist/graphology.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
+  <script src="/static/graph.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+click>=8.0
+python-frontmatter>=1.0
+pyyaml>=6.0
+tomlkit>=0.12
+jsonschema>=4.23,<5
+mcp>=1.12.4,<2

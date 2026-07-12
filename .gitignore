@@ -1,0 +1,12 @@
+# Python build/test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.distill/
+distill_vault.egg-info/
+*.egg-info/
+
+# Local planning scratch
+.hermes/
+.claude/
+.gitnexus

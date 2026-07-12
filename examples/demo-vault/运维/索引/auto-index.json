@@ -1,0 +1,70 @@
+{
+  "generated_at": "2026-05-02 22:24:12.919813",
+  "stats": {
+    "total_objects": 25,
+    "graph_nodes": 25,
+    "graph_edges": 263,
+    "issues": 0,
+    "promotions": 3
+  },
+  "type_distribution": [
+    [
+      "source",
+      5
+    ],
+    [
+      "decision",
+      3
+    ],
+    [
+      "constraint",
+      2
+    ],
+    [
+      "output",
+      2
+    ],
+    [
+      "project",
+      4
+    ],
+    [
+      "entity",
+      3
+    ],
+    [
+      "concept",
+      6
+    ]
+  ],
+  "orphans": [],
+  "promotion_actions": [
+    {
+      "type": "extract-decision",
+      "source": "知识/来源/2024-01-15 Anthropic发布Claude 3.md",
+      "source_title": "2024-01-15 Anthropic发布Claude 3",
+      "target": "知识/决策/2024-01-15 Anthropic发布Claude 3.md",
+      "reason": "Source '2024-01-15 Anthropic发布Claude 3' contains decision keywords",
+      "confidence": "medium",
+      "auto_safe": false
+    },
+    {
+      "type": "extract-decision",
+      "source": "知识/来源/2024-03-01 LangChain vs LlamaIndex对比.md",
+      "source_title": "2024-03-01 LangChain vs LlamaIndex对比",
+      "target": "知识/决策/2024-03-01 LangChain vs LlamaIndex对比.md",
+      "reason": "Source '2024-03-01 LangChain vs LlamaIndex对比' contains decision keywords",
+      "confidence": "medium",
+      "auto_safe": false
+    },
+    {
+      "type": "extract-decision",
+      "source": "知识/来源/2024-05-20 Vector DB Benchmark.md",
+      "source_title": "2024-05-20 Vector DB Benchmark",
+      "target": "知识/决策/2024-05-20 Vector DB Benchmark.md",
+      "reason": "Source '2024-05-20 Vector DB Benchmark' contains decision keywords",
+      "confidence": "medium",
+      "auto_safe": false
+    }
+  ]
+}
