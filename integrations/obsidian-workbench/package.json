@@ -1,0 +1,14 @@
+{
+  "name": "obsidian-distill-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc --noEmit && node build.mjs",
+    "test": "npm run build && node build.mjs --test && node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "obsidian": "1.8.7",
+    "typescript": "5.8.3",
+    "esbuild": "0.25.5"
+  }
+}

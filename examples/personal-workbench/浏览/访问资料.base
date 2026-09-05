@@ -1,0 +1,10 @@
+filters:
+  and:
+    - 'file.inFolder("访问资料")'
+views:
+  - type: table
+    name: 访问资料
+    order:
+      - file.name
+      - type
+      - environment

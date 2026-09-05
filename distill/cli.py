@@ -306,17 +306,40 @@ def _watch_index(vault_path: Path):
 
 
 @cli.command()
+@click.argument("text")
+@click.option("--attachment", multiple=True, type=click.Path(exists=True, dir_okay=False))
+@click.option("--format", "fmt", type=click.Choice(["markdown", "json"]), default="markdown")
+@click.pass_context
+def record(ctx, text, attachment, fmt):
+    """Save arbitrary TEXT as a raw source without classifying or promoting it."""
+    from .source_record import record_source
+    _require_vault(ctx)
+    try:
+        payload = record_source(ctx.obj["vault"], text, attachments=list(attachment))
+    except (ValueError, OSError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    if fmt == "json":
+        click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        click.echo(f"Saved: {payload['source_path']}\nOriginal: {payload['raw_path']}\n{payload['recommended_commit_command']}")
+
+
+@cli.command()
 @click.option("--fix", is_flag=True, help="Auto-fix fixable issues")
 @click.option("--staged", is_flag=True, help="Only check git staged files")
+@click.option("--paths", multiple=True, help="Validate only these vault-relative files or directories")
 @click.option("--strict", is_flag=True, help="Treat warnings as errors")
 @click.option("--format", "fmt", type=click.Choice(["markdown", "json"]), default="markdown")
 @click.pass_context
-def lint(ctx, fix, staged, strict, fmt):
+def lint(ctx, fix, staged, strict, fmt, paths):
     """Lint vault objects for structural issues."""
     _require_vault(ctx)
     linter = VaultLinter(ctx.obj["vault"])
     linter.scan()
-    issues = linter.lint(fix=fix, staged=staged)
+    try:
+        issues = linter.lint(fix=fix, staged=staged, paths=list(paths) or None)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
     blocking_severities = {"error", "warning"} if strict else {"error"}
     failed = any(issue.get("severity") in blocking_severities for issue in issues)
     if fix and linter._fixes_applied:

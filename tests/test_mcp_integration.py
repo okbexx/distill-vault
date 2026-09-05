@@ -106,6 +106,27 @@ def test_query_analysis_lint_and_pipeline_over_sdk(tmp_path):
     asyncio.run(run())
 
 
+def test_source_record_and_search_over_sdk(tmp_path):
+    vault = _make_vault(tmp_path)
+    text = "  violetzephyrotter\r\n[[unclassified-reference]]  "
+
+    async def run() -> None:
+        async with stdio_client(_parameters(vault)) as (reader, writer):
+            async with ClientSession(reader, writer) as session:
+                await session.initialize()
+                result = await session.call_tool("source_record", {"text": text})
+                assert result.isError is False
+                payload = result.structuredContent
+                assert (vault / payload["raw_path"]).read_bytes() == text.encode()
+                search = await session.call_tool("search", {"query": "violetzephyrotter"})
+                assert search.isError is False
+                assert any(item["path"] == payload["source_path"] for item in search.structuredContent["results"])
+                lint = await session.call_tool("lint_check", {})
+                assert not any(issue["severity"] == "error" and issue.get("file") == payload["source_path"] for issue in lint.structuredContent["issues"])
+
+    asyncio.run(run())
+
+
 def test_rename_preview_and_apply_over_sdk(tmp_path):
     vault = _make_vault(tmp_path)
 

@@ -30,10 +30,19 @@ class DistillCommit:
         - error: str or None
         """
         lint_issues = []
+        for value in paths or []:
+            path = Path(value)
+            if (not value or path.is_absolute() or ".." in path.parts
+                    or value.startswith(":") or any(c in value for c in "*?[]")
+                    or not (self.vault_root / path).resolve().is_relative_to(self.vault_root)):
+                return self._failure([], None, None, f"expected literal vault-relative path: {value}")
         if not skip_lint:
-            lint_result = self._run_distill("lint", "--format", "json")
+            lint_args = ["lint", "--format", "json"]
+            for path in paths or []:
+                lint_args.extend(["--paths", path])
+            lint_result = self._run_distill(*lint_args)
             lint_issues = self._extract_error_issues(lint_result)
-            if lint_result.returncode != 0 and lint_issues:
+            if lint_issues:
                 return {
                     "success": False,
                     "lint_issues": lint_issues,
@@ -55,7 +64,10 @@ class DistillCommit:
         if add_result.returncode != 0:
             return self._failure(lint_issues, None, None, self._command_error("git add", add_result))
 
-        commit_result = self._run_command(["git", "commit", "-m", message])
+        commit_command = ["git", "commit", "-m", message]
+        if paths:
+            commit_command.extend(["--only", "--", *paths])
+        commit_result = self._run_command(commit_command)
         if commit_result.returncode != 0:
             return self._failure(lint_issues, None, None, self._command_error("git commit", commit_result))
 

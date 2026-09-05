@@ -1,0 +1,11 @@
+version: 3
+vault:
+  knowledge_dirs: [收件箱, 项目, 访问资料]
+  output_dirs: []
+  ops_dirs: []
+  system_dirs: []
+objects:
+  path_type_map:
+    收件箱/: source
+    项目/: project
+    访问资料/: access

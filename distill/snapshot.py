@@ -90,7 +90,10 @@ class VaultSnapshot:
 
                 metadata = dict(post.metadata)
                 content = post.content or ""
-                links = extract_wikilinks(content)
+                # Raw inbox evidence is searchable text, not curated graph edges.
+                # Literal [[...]] in unprocessed input must not require cleanup.
+                raw_source = metadata.get("type") == "source" and metadata.get("status") == "raw"
+                links = [] if raw_source else extract_wikilinks(content)
                 links.extend(extract_frontmatter_links(metadata, include_plain_strings=True))
                 objects.append(VaultObject(
                     path=rel,

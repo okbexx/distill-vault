@@ -1,0 +1,10 @@
+filters:
+  and:
+    - 'file.inFolder("收件箱")'
+views:
+  - type: table
+    name: 收件箱
+    order:
+      - file.name
+      - type
+      - environment

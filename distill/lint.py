@@ -45,7 +45,11 @@ class VaultLinter:
     def scan(self):
         self.index.scan()
 
-    def lint(self, fix=False, staged=False):
+    def lint(self, fix=False, staged=False, paths=None):
+        if paths:
+            if fix or staged:
+                raise ValueError("--paths cannot be combined with --fix or --staged")
+            return self._lint_paths(paths)
         self._check_broken_links()
         self._check_orphans()
         self._check_frontmatter_completeness()
@@ -57,6 +61,54 @@ class VaultLinter:
             self.issues = [issue for issue in self.issues if self._issue_matches_staged(issue, staged_files)]
         if fix:
             self._auto_fix()
+        return self.issues
+
+    def _lint_paths(self, paths):
+        """Validate selected objects, retaining the full index only for link lookup.
+
+        Selection happens before schema validation and diagnostic limits, not
+        after whole-vault lint. Deleted files have no schema/body to validate.
+        """
+        from .snapshot import VaultSnapshot
+        root = self.vault.resolve()
+        selected = []
+        for value in paths:
+            path = Path(value)
+            if not value or path.is_absolute() or ".." in path.parts or value.startswith(":") or any(c in value for c in "*?[]"):
+                raise ValueError(f"expected literal vault-relative path: {value}")
+            resolved = (root / path).resolve()
+            if not resolved.is_relative_to(root):
+                raise ValueError(f"path escapes vault: {value}")
+            selected.append(path.as_posix().rstrip("/"))
+        tracked = subprocess.run(["git", "ls-files", "--deleted", "-z", "--", *selected],
+                                 cwd=root, capture_output=True, text=True)
+        staged_deleted = subprocess.run(["git", "diff", "--cached", "--name-only", "--diff-filter=D", "--no-renames", "-z", "--", *selected],
+                                       cwd=root, capture_output=True, text=True)
+        if tracked.stdout or staged_deleted.stdout:
+            raise ValueError("scoped validation does not support deletions; use full-vault commit to validate incoming links")
+        def matches(path):
+            return any(scope == "." or path == scope or path.startswith(scope + "/") for scope in selected)
+        snapshot = self.index.snapshot
+        if snapshot is None:
+            raise ValueError("scan must be called before lint")
+        subset = VaultSnapshot(root, tuple(obj for obj in snapshot.objects if matches(obj.path)),
+                               tuple(d for d in snapshot.diagnostics if matches(d.path)))
+        scoped = VaultLinter(root, config=self.config, snapshot=subset)
+        scoped.index.objects = [obj for obj in self.index.objects if matches(obj["path"])]
+        # All targets remain visible, but unrelated broken links are never checked
+        # or allowed to consume the diagnostic budget.
+        for link in self.index.broken_links:
+            if matches(link["from"]):
+                scoped.issues.append({"severity": "error", "rule": "broken-wikilink",
+                    "message": f"Broken link: [[{link['to']}]] in {link['from']}",
+                    "file": link["from"], "link": link["to"]})
+        scoped.issues.extend({"severity": d.severity, "rule": d.code,
+                              "file": d.path, "message": d.message} for d in subset.diagnostics)
+        scoped._check_frontmatter_completeness()
+        scoped._check_type_consistency()
+        scoped._check_schema()
+        scoped._check_presentation_contracts()
+        self.issues = scoped.issues
         return self.issues
 
     def _check_broken_links(self):
@@ -77,6 +129,7 @@ class VaultLinter:
                     bucket = name
                     break
             informational_messages = {
+                "raw_inbox": f"Raw inbox source (no classification required): {op}",
                 "system_doc": f"System doc (informational): {op}",
                 "timeline_archive": f"Timeline archive (informational): {op}",
             }

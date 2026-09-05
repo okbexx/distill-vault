@@ -193,6 +193,8 @@ def classify_orphan_path(path: str | None, frontmatter: dict | None = None) -> s
     if name in SYSTEM_DOC_FILENAMES:
         return "system_doc"
     metadata = frontmatter or {}
+    if metadata.get("type") == "source" and metadata.get("status") == "raw":
+        return "raw_inbox"
     if (
         metadata.get("type") == "output"
         and metadata.get("output_type") in {"log", "daily", "daily_log"}

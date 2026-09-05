@@ -58,6 +58,12 @@ class DistillMCPTools:
         self.vault_root = Path(vault_root).expanduser().resolve()
         self._tools: Dict[str, MCPTool] = {}
         self._register_tools()
+        self._register("source_record", "Save arbitrary text and optional file attachments as a raw inbox source; no project or fact required.", {
+            "type": "object", "properties": {
+                "text": {"type": "string"},
+                "attachments": {"type": "array", "items": {"type": "string"}},
+            }, "required": ["text"], "additionalProperties": False,
+        }, self.source_record)
 
     def list_tools(self) -> List[Dict[str, Any]]:
         return [tool.as_schema() for tool in self._tools.values()]
@@ -391,6 +397,10 @@ class DistillMCPTools:
             },
             self.pipeline_status,
         )
+
+    def source_record(self, text: str, attachments: Optional[List[str]] = None) -> Dict[str, Any]:
+        from .source_record import record_source
+        return record_source(self.vault_root, text, attachments=attachments)
 
     def _make_index(self) -> VaultIndex:
         index = VaultIndex(self.vault_root)

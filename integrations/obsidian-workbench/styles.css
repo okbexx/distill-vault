@@ -1,0 +1,9 @@
+.distill-workbench { padding: 20px; overflow: auto; }
+.distill-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-block: 12px; }
+.distill-toolbar input { flex: 1; min-width: 180px; }
+.distill-card { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; border: 1px solid var(--background-modifier-border); border-radius: 8px; padding: 12px; margin-block: 8px; overflow-wrap: anywhere; }
+.distill-muted { color: var(--text-muted); }
+.distill-capture > input[type="text"], .distill-capture textarea { width: 100%; margin-bottom: 12px; }
+.distill-capture textarea { resize: vertical; }
+.distill-file { display: flex; gap: 8px; justify-content: space-between; margin-block: 8px; overflow-wrap: anywhere; }
+.distill-card code { white-space: pre-wrap; overflow-wrap: anywhere; }

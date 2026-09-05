@@ -1,0 +1,10 @@
+filters:
+  and:
+    - 'file.inFolder("项目")'
+views:
+  - type: table
+    name: 项目
+    order:
+      - file.name
+      - type
+      - environment
