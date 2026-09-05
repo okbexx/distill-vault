@@ -13,6 +13,7 @@ from .vault_semantics import (
     build_lookup_indexes,
     extract_frontmatter_links,
     extract_wikilinks,
+    is_raw_source,
     resolve_link_target,
 )
 
@@ -39,7 +40,8 @@ class SQLiteVaultStore:
         edges: set[tuple[str, str, str]] = set()
 
         for obj in snapshot.objects:
-            for link in extract_wikilinks(obj.content):
+            body_links = [] if is_raw_source(obj.frontmatter) else extract_wikilinks(obj.content)
+            for link in body_links:
                 target = resolve_link_target(
                     link,
                     path_index=path_index,

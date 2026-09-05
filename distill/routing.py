@@ -22,6 +22,7 @@ from typing import Any, TypedDict
 import frontmatter
 
 from .atomic_io import atomic_write_text
+from .commit import recommended_commit_command
 from .config import load_config
 from .index import VaultIndex
 
@@ -382,7 +383,7 @@ def route_plan(vault_root: Path | str, intent: str, project_hint: str | None = N
             ],
             recommended_commit_paths=commit_paths,
             recommended_commit_message=commit_message,
-            recommended_commit_command=_recommended_commit_command(commit_paths, commit_message),
+            recommended_commit_command=recommended_commit_command(vault, commit_paths, commit_message),
             why=[
                 "matched existing project object",
                 "intent contains a completed or verified fact",
@@ -434,7 +435,11 @@ def _today_source_path(config: dict[str, Any], vault_root: Path) -> str:
     today = _today_iso()
     zh_root = Path("知识") / "来源"
     en_root = Path("knowledge") / "source"
-    if (vault_root / "知识").exists() or zh_root.as_posix() in str(config.get("objects", {}).get("path_type_map", {})):
+    if (vault_root / "知识").exists():
+        return str(zh_root / f"{today}-碎碎念.md")
+    if (vault_root / "knowledge").exists():
+        return str(en_root / f"{today}-notes.md")
+    if zh_root.as_posix() in str(config.get("objects", {}).get("path_type_map", {})):
         return str(zh_root / f"{today}-碎碎念.md")
     return str(en_root / f"{today}-notes.md")
 
@@ -443,10 +448,6 @@ def _recommended_commit_message(project_title: str | None) -> str:
     title = (project_title or "知识").strip() or "知识"
     return f"知识库: 记录{title}成果"
 
-
-def _recommended_commit_command(paths: list[str], message: str) -> str:
-    path_args = " ".join(f"--paths {path}" for path in paths)
-    return f'distill commit "{message}" {path_args} --skip-run'
 
 
 def capture_progress_update(
@@ -483,7 +484,7 @@ def capture_progress_update(
         touched.append(project_path)
     project_title = plan.get("target_project")
     commit_message = plan.get("recommended_commit_message") or _recommended_commit_message(project_title)
-    commit_command = plan.get("recommended_commit_command") or _recommended_commit_command(touched, commit_message)
+    commit_command = plan.get("recommended_commit_command") or recommended_commit_command(vault, touched, commit_message)
     return CaptureResult(
         action="knowledge_capture",
         status="applied",

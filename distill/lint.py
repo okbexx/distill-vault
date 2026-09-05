@@ -17,6 +17,7 @@ from .vault_semantics import (
     PRESENTATION_SECTIONS,
     WIKILINK_RE,
     extract_h2_headings,
+    is_raw_source,
     should_ignore_broken_link,
 )
 
@@ -74,15 +75,15 @@ class VaultLinter:
         selected = []
         for value in paths:
             path = Path(value)
-            if not value or path.is_absolute() or ".." in path.parts or value.startswith(":") or any(c in value for c in "*?[]"):
+            if not value or path.is_absolute() or ".." in path.parts or value.startswith(":") or any(c in value for c in "*?"):
                 raise ValueError(f"expected literal vault-relative path: {value}")
             resolved = (root / path).resolve()
             if not resolved.is_relative_to(root):
                 raise ValueError(f"path escapes vault: {value}")
             selected.append(path.as_posix().rstrip("/"))
-        tracked = subprocess.run(["git", "ls-files", "--deleted", "-z", "--", *selected],
+        tracked = subprocess.run(["git", "--literal-pathspecs", "ls-files", "--deleted", "-z", "--", *selected],
                                  cwd=root, capture_output=True, text=True)
-        staged_deleted = subprocess.run(["git", "diff", "--cached", "--name-only", "--diff-filter=D", "--no-renames", "-z", "--", *selected],
+        staged_deleted = subprocess.run(["git", "--literal-pathspecs", "diff", "--cached", "--name-only", "--diff-filter=D", "--no-renames", "-z", "--", *selected],
                                        cwd=root, capture_output=True, text=True)
         if tracked.stdout or staged_deleted.stdout:
             raise ValueError("scoped validation does not support deletions; use full-vault commit to validate incoming links")
@@ -250,6 +251,8 @@ class VaultLinter:
 
         # Process each markdown file
         for obj in self.index.objects:
+            if is_raw_source(obj.get("frontmatter", {})):
+                continue  # Raw input and copied attachments are immutable evidence.
             file_path = self.vault / obj["path"]
             if not file_path.exists():
                 continue

@@ -139,7 +139,7 @@ class TestDistillCommit:
                 return subprocess.CompletedProcess(command, 0, stdout=json.dumps({"issues": []}), stderr="")
             if command == ["git", "add", "-A"]:
                 return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
-            if command[:2] == ["git", "commit"]:
+            if command[:3] == ["git", "--literal-pathspecs", "commit"]:
                 return subprocess.CompletedProcess(command, 0, stdout="[main abc123] test commit", stderr="")
             if command == ["git", "rev-parse", "HEAD"]:
                 return subprocess.CompletedProcess(command, 0, stdout="abc123\n", stderr="")
@@ -194,7 +194,7 @@ class TestDistillCommit:
                 return subprocess.CompletedProcess(command, 0, stdout=json.dumps({"issues": []}), stderr="")
             if command == ["git", "add", "-A"]:
                 return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
-            if command[:2] == ["git", "commit"]:
+            if command[:3] == ["git", "--literal-pathspecs", "commit"]:
                 return subprocess.CompletedProcess(command, 0, stdout="[main def456] push commit", stderr="")
             if command == ["git", "rev-parse", "HEAD"]:
                 return subprocess.CompletedProcess(command, 0, stdout="def456\n", stderr="")
@@ -224,9 +224,9 @@ class TestDistillCommit:
             calls.append(command)
             if self._is_distill_command(command, "lint"):
                 return subprocess.CompletedProcess(command, 0, stdout=json.dumps({"issues": []}), stderr="")
-            if command == ["git", "add", "--", "知识/来源/2026-05-12-碎碎念.md", "知识/项目/激光雷达.md"]:
+            if command == ["git", "--literal-pathspecs", "add", "--", "知识/来源/2026-05-12-碎碎念.md", "知识/项目/激光雷达.md"]:
                 return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
-            if command[:2] == ["git", "commit"]:
+            if command[:3] == ["git", "--literal-pathspecs", "commit"]:
                 return subprocess.CompletedProcess(command, 0, stdout="[main a1b2c3] scoped commit", stderr="")
             if command == ["git", "rev-parse", "HEAD"]:
                 return subprocess.CompletedProcess(command, 0, stdout="a1b2c3\n", stderr="")
@@ -241,7 +241,7 @@ class TestDistillCommit:
             )
 
         assert result["success"] is True
-        assert ["git", "add", "--", "知识/来源/2026-05-12-碎碎念.md", "知识/项目/激光雷达.md"] in calls
+        assert ["git", "--literal-pathspecs", "add", "--", "知识/来源/2026-05-12-碎碎念.md", "知识/项目/激光雷达.md"] in calls
         assert ["git", "add", "-A"] not in calls
 
     def test_commit_skip_run_suppresses_pipeline_execution(self, git_repo):
@@ -254,7 +254,7 @@ class TestDistillCommit:
                 return subprocess.CompletedProcess(command, 0, stdout=json.dumps({"issues": []}), stderr="")
             if command == ["git", "add", "-A"]:
                 return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
-            if command[:2] == ["git", "commit"]:
+            if command[:3] == ["git", "--literal-pathspecs", "commit"]:
                 return subprocess.CompletedProcess(command, 0, stdout="[main c3d4e5] no run", stderr="")
             if command == ["git", "rev-parse", "HEAD"]:
                 return subprocess.CompletedProcess(command, 0, stdout="c3d4e5\n", stderr="")

@@ -100,6 +100,74 @@ FRONTMATTER_EDGE_TYPES = {
 }
 
 
+def is_raw_source(metadata) -> bool:
+    """Raw evidence has no curated body edges (explicit relations still count)."""
+    return metadata.get("type") == "source" and metadata.get("status") == "raw"
+
+
+def is_plain_inbox_source(path: str, metadata, root: Path, config: dict) -> bool:
+    """Only an explicitly configured inbox opts unclassified notes into raw."""
+    configured = config.get("capture", {}).get("source_dir")
+    if not configured:
+        return False
+    inbox = root / str(configured)
+    resolved = inbox.resolve()
+    # A symlinked or out-of-vault inbox must not widen the evidence boundary.
+    if not resolved.is_relative_to(root) or resolved != inbox.absolute():
+        return False
+    candidate = root / path
+    if not candidate.resolve().is_relative_to(resolved):
+        return False
+    return (metadata.get("type") in (None, "", "unknown", "source")
+            and metadata.get("status") in (None, "", "unknown", "raw"))
+
+
+def source_attachment_owners(root: Path, paths: Iterable[str]) -> dict[str, str]:
+    """Resolve explicit sibling manifests, with a narrow old-writer fallback.
+
+    No directory-wide exemptions, arbitrary Markdown links, traversal or symlinks.
+    Legacy recognition requires the writer UUID/id, original.txt and exact numbered
+    Attachment links. An explicit (even empty) manifest disables legacy fallback.
+    """
+    import frontmatter
+    from urllib.parse import unquote
+
+    owners = {}
+    parents = {Path(path).parent for path in paths}
+    for parent in sorted(parents):
+        directory = root / parent
+        source = directory / "source.md"
+        if directory.resolve() != directory.absolute() or not directory.resolve().is_relative_to(root):
+            continue
+        if not source.is_file() or source.is_symlink():
+            continue
+        try:
+            post = frontmatter.load(source)
+        except Exception:
+            continue
+        if not is_raw_source(post.metadata):
+            continue
+        names = post.metadata.get("attachments")
+        if "attachments" not in post.metadata:
+            if (not re.fullmatch(r"\d{4}-\d{2}-\d{2}-[0-9a-f]{32}", parent.name)
+                    or post.get("id") != "source-" + parent.name
+                    or not (directory / "original.txt").is_file()
+                    or (directory / "original.txt").is_symlink()):
+                continue
+            names = [unquote(name) for name in re.findall(r"^\[Attachment\]\(([^\n]+)\)$", post.content, re.MULTILINE)]
+        if not isinstance(names, list):
+            continue
+        for name in names:
+            if (not isinstance(name, str) or not re.fullmatch(r"[1-9][0-9]*-[^/\\\n]+", name)
+                    or Path(name).name != name):
+                continue
+            candidate = directory / name
+            if not candidate.is_file() or candidate.is_symlink() or candidate.resolve() != candidate.absolute():
+                continue
+            owners[candidate.relative_to(root).as_posix()] = source.relative_to(root).as_posix()
+    return owners
+
+
 def listify(value):
     if value is None:
         return []

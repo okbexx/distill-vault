@@ -285,7 +285,9 @@ def test_route_fact_capture_returns_minimal_file_surface(tmp_path, monkeypatch):
         "知识/项目/激光雷达.md",
     ]
     assert plan["recommended_commit_message"] == "知识库: 记录激光雷达成果"
-    assert "distill commit" in plan["recommended_commit_command"]
+    import shlex
+    assert plan["recommended_commit_command"] is not None
+    assert shlex.split(plan["recommended_commit_command"])[:4] == ["distill", "--vault", str(vault.resolve()), "commit"]
     assert "--skip-run" in plan["recommended_commit_command"]
 
 
@@ -357,7 +359,7 @@ def test_render_route_markdown_matches_current_cli_surface(tmp_path, monkeypatch
         "  - repo-wide lint\n"
         "  - repo-wide index maintenance\n"
         "Recommended commit:\n"
-        '  distill commit "知识库: 记录激光雷达成果" --paths 知识/来源/2026-05-12-碎碎念.md --paths 知识/项目/激光雷达.md --skip-run'
+        f"  {route_intent(vault, '记录一下激光雷达今天进展，UAT已发布')['recommended_commit_command']}"
     )
 
 
@@ -399,7 +401,7 @@ def test_render_plan_markdown_matches_current_cli_surface(tmp_path, monkeypatch)
         "  - repo-wide lint\n"
         "  - repo-wide index maintenance\n"
         "Recommended commit:\n"
-        '  distill commit "知识库: 记录激光雷达成果" --paths 知识/来源/2026-05-12-碎碎念.md --paths 知识/项目/激光雷达.md --skip-run'
+        f"  {route_intent(vault, '记录一下激光雷达今天进展，UAT已发布')['recommended_commit_command']}"
     )
 
 
@@ -524,7 +526,7 @@ def test_build_apply_payload_matches_capture_result_surface(tmp_path, monkeypatc
             "知识/项目/激光雷达.md",
         ],
         "recommended_commit_message": "知识库: 记录激光雷达成果",
-        "recommended_commit_command": 'distill commit "知识库: 记录激光雷达成果" --paths 知识/来源/2026-05-12-碎碎念.md --paths 知识/项目/激光雷达.md --skip-run',
+        "recommended_commit_command": result.recommended_commit_command,
     }
 
 

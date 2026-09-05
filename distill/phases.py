@@ -31,6 +31,7 @@ from .vault_semantics import (
     extract_frontmatter_links,
     extract_wikilinks,
     listify,
+    source_attachment_owners,
     resolve_link_target,
 )
 from .worker_pool import WorkerPool
@@ -76,10 +77,15 @@ def build_pipeline(vault_root: Path, worker_pool: WorkerPool | None = None, conf
         vault = ctx.vault
         ops_dir = get_ops_dir(ctx.config, vault)
         all_files = []
+        seen = set()
         for d in get_scan_dirs(ctx.config, vault):
             for path in d.rglob("*.md"):
-                if ops_dir in path.parents:
+                resolved = path.resolve()
+                if (resolved in seen or not resolved.is_relative_to(vault.resolve())
+                        or resolved != path.absolute()
+                        or ops_dir.resolve() in resolved.parents):
                     continue
+                seen.add(resolved)
                 all_files.append(path)
         
         ctx.set("all_files", all_files)
@@ -108,6 +114,10 @@ def build_pipeline(vault_root: Path, worker_pool: WorkerPool | None = None, conf
     @dag.register("parse", deps=["scan"])
     def phase_parse(ctx):
         files = ctx.get("all_files", [])
+        # Original Markdown must never enter the frontmatter worker parser.
+        attachment_owners = source_attachment_owners(
+            ctx.vault, (str(path.relative_to(ctx.vault)) for path in files))
+        files = [path for path in files if str(path.relative_to(ctx.vault)) not in attachment_owners]
         wikilinks = defaultdict(list)
         
         if ctx.worker_pool:
@@ -143,10 +153,15 @@ def build_pipeline(vault_root: Path, worker_pool: WorkerPool | None = None, conf
                 except Exception:
                     continue
         
+        objects.extend({"path": path} for path in attachment_owners
+                       if path in {str(p.relative_to(ctx.vault)) for p in ctx.get("all_files", [])})
+        snapshot = VaultSnapshot.from_objects(ctx.vault, objects, config=ctx.config)
+        objects = [obj.as_dict(include_content=True) for obj in snapshot.objects]
+        wikilinks = {obj.path: list(obj.links) for obj in snapshot.objects}
         ctx.set("objects", objects)
-        ctx.set("wikilinks", dict(wikilinks))
+        ctx.set("wikilinks", wikilinks)
         ctx.set("object_count", len(objects))
-        ctx.set("snapshot", VaultSnapshot.from_objects(ctx.vault, objects))
+        ctx.set("snapshot", snapshot)
         _record_worker_pool_phase(ctx, "parse")
         dag.phases["parse"].objects_processed = len(objects)
     

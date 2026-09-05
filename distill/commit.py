@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 import json
+import shlex
 import subprocess
 import sys
 from pathlib import Path
+
+
+def recommended_commit_command(vault_root: Path | str, paths: list[str], message: str) -> str:
+    """Shell-safe commit guidance bound to its vault, independent of caller cwd."""
+    args = ["distill", "--vault", str(Path(vault_root).expanduser().resolve()), "commit", message]
+    for path in paths:
+        args.extend(["--paths", path])
+    return shlex.join([*args, "--skip-run"])
 
 
 class DistillCommit:
@@ -33,7 +42,7 @@ class DistillCommit:
         for value in paths or []:
             path = Path(value)
             if (not value or path.is_absolute() or ".." in path.parts
-                    or value.startswith(":") or any(c in value for c in "*?[]")
+                    or value.startswith(":") or any(c in value for c in "*?")
                     or not (self.vault_root / path).resolve().is_relative_to(self.vault_root)):
                 return self._failure([], None, None, f"expected literal vault-relative path: {value}")
         if not skip_lint:
@@ -59,12 +68,12 @@ class DistillCommit:
                     "error": self._command_error("distill lint", lint_result),
                 }
 
-        add_command = ["git", "add", "-A"] if not paths else ["git", "add", "--", *paths]
+        add_command = ["git", "add", "-A"] if not paths else ["git", "--literal-pathspecs", "add", "--", *paths]
         add_result = self._run_command(add_command)
         if add_result.returncode != 0:
             return self._failure(lint_issues, None, None, self._command_error("git add", add_result))
 
-        commit_command = ["git", "commit", "-m", message]
+        commit_command = ["git", "--literal-pathspecs", "commit", "-m", message]
         if paths:
             commit_command.extend(["--only", "--", *paths])
         commit_result = self._run_command(commit_command)

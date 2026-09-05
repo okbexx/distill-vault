@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-import shlex
 import shutil
 import uuid
 from urllib.parse import quote
@@ -11,6 +10,7 @@ from urllib.parse import quote
 import yaml
 
 from .atomic_io import resolve_guarded_path
+from .commit import recommended_commit_command
 from .config import get_scan_dirs, load_config
 
 
@@ -67,6 +67,7 @@ def record_source(vault_root: Path | str, text: str, *, attachments: list[str] |
             "status": "raw", "lifecycle_stage": "raw", "source_type": "note",
             "created_at": stamp.isoformat(), "source_url": None, "author": None,
             "reliability": "unknown", "projects": [], "concepts": [], "entities": [], "outputs": [],
+            "attachments": [path.name for path in copied],
         }
         body = text + "\n\n---\n[Original UTF-8 bytes](original.txt)\n"
         for path in copied:
@@ -80,7 +81,7 @@ def record_source(vault_root: Path | str, text: str, *, attachments: list[str] |
     relative = lambda p: p.relative_to(vault).as_posix()
     touched = [relative(source_path), relative(raw), *map(relative, copied)]
     message = "知识库: 保存临时记录"
-    command = "distill commit " + shlex.quote(message) + " " + " ".join("--paths " + shlex.quote(p) for p in touched) + " --skip-run"
+    command = recommended_commit_command(vault, touched, message)
     return {
         "action": "source_record", "operation": "source_only", "status": "applied",
         "source_path": relative(source_path), "raw_path": relative(raw),

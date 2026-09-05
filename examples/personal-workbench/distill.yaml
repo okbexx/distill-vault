@@ -1,4 +1,6 @@
 version: 3
+capture:
+  source_dir: 收件箱
 vault:
   knowledge_dirs: [收件箱, 项目, 访问资料]
   output_dirs: []

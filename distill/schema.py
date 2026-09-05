@@ -11,6 +11,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from .snapshot import VaultObject, VaultSnapshot
+from .vault_semantics import is_raw_source
 
 
 @dataclass(frozen=True)
@@ -86,6 +87,8 @@ def validate_snapshot(
         return []
     issues = []
     for obj in snapshot.objects:
+        if is_raw_source(obj.frontmatter):
+            continue
         include_globs = config.get("schema", {}).get("include_globs") or []
         if include_globs and not any(fnmatch.fnmatchcase(obj.path, pattern) for pattern in include_globs):
             continue
